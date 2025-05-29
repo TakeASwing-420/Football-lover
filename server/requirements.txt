@@ -5,3 +5,5 @@ Flask-Limiter
 numpy
 transformers
 jsonpickle
+bs4
+matplotlib
