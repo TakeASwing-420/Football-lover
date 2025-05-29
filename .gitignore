@@ -2,3 +2,4 @@ client/node_modules/
 .env
 .cache
 log.txt
+__pycache__/
