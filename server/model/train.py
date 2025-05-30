@@ -176,8 +176,8 @@ def train(dataset, model, name, resume=False, patience=15):
                       f"V: {loss_valence:.3f} + E: {loss_energy:.3f})")
 
         # copy old model
-        save_name = f"{name}-epoch{epoch}.pth" if epoch % 10 == 0 else f"{name}.pth"
-        decoder_save_name = f"{name}-decoder-epoch{epoch}.pth" if epoch % 10 == 0 else f"{name}-decoder.pth"
+        save_name = f"{name}.pth"
+        decoder_save_name = f"{name}-decoder.pth"
         torch.save(model.state_dict(), save_name)
         torch.save(model.decoder.state_dict(), decoder_save_name)
         torch.save(optimizer.state_dict(), optimizer_path)
