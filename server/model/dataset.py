@@ -1,6 +1,6 @@
 import collections
 
-from model.constants import *
+from constants import *
 
 
 def process_sample(json_file):
@@ -15,7 +15,7 @@ def process_sample(json_file):
     energy = json_file["audio_features"]["energy"]
     valence = json_file["audio_features"]["valence"]
 
-    bpm = int(json_file["audio_features"]["tempo"])
+    bpm = int(json_file["metadata"]["BPM"])
     # normalize tempo into range 70-100
     bpm = min(100.0, max(70.0, ((bpm - 70) * (3 / 13)) + 70))
     # normalize tempo into [0, 1], cutting off at 70 and 100

@@ -4,8 +4,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from model.dataset import *
-
+from Dataset import *
 
 class Lyrics2LofiDataset(Dataset):
     def __init__(self, dataset_folder, files, embeddings_file, embedding_lengths_file):

@@ -1,13 +1,15 @@
 import matplotlib.pyplot as plot
+import os
+import pickle
 import torch
 from torch import nn
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch.utils.data import DataLoader
 
-from model.constants import *
+from constants import *
 
 
-def train(dataset, model, name):
+def train(dataset, model, name, resume=False, patience=10):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
 
@@ -21,12 +23,40 @@ def train(dataset, model, name):
     l1_loss = nn.L1Loss(reduction='mean')
 
     model = model.to(device)
-
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 
+    # Initialize histories
     epochs = []
     train_losses_chords, train_losses_melodies, train_losses_kl, train_accs_chords, train_accs_melodies = [], [], [], [], []
     val_losses_chords, val_losses_melodies, val_losses_kl, val_accs_chords, val_accs_melodies = [], [], [], [], []
+    epoch = 0
+    best_val_loss = float('inf')
+    epochs_no_improve = 0
+
+    # Resume logic
+    state_path = f"{name}_train_state.pkl"
+    optimizer_path = f"{name}_optimizer.pth"
+    model_path = f"{name}.pth"
+    decoder_path = f"{name}-decoder.pth"
+    if resume and os.path.isfile(state_path):
+        print(f"Resuming training from {state_path}")
+        with open(state_path, 'rb') as f:
+            state = pickle.load(f)
+        epochs = state['epochs']
+        train_losses_chords = state['train_losses_chords']
+        train_losses_melodies = state['train_losses_melodies']
+        train_losses_kl = state['train_losses_kl']
+        train_accs_chords = state['train_accs_chords']
+        train_accs_melodies = state['train_accs_melodies']
+        val_losses_chords = state['val_losses_chords']
+        val_losses_melodies = state['val_losses_melodies']
+        val_losses_kl = state['val_losses_kl']
+        val_accs_chords = state['val_accs_chords']
+        val_accs_melodies = state['val_accs_melodies']
+        epoch = state['epoch']
+        model.load_state_dict(torch.load(model_path))
+        model.decoder.load_state_dict(torch.load(decoder_path))
+        optimizer.load_state_dict(torch.load(optimizer_path))
 
     # losses for one batch of data
     def compute_loss(data):
@@ -89,7 +119,6 @@ def train(dataset, model, name):
         return loss_total, loss_chords, loss_kl, loss_melody, loss_tempo, loss_key, loss_mode, loss_valence, loss_energy, tp_chords, tp_melodies
 
     print(f"Starting training: {name}")
-    epoch = 0
     while True:
         epochs.append(epoch)
 
@@ -151,6 +180,24 @@ def train(dataset, model, name):
         decoder_save_name = f"{name}-decoder-epoch{epoch}.pth" if epoch % 10 == 0 else f"{name}-decoder.pth"
         torch.save(model.state_dict(), save_name)
         torch.save(model.decoder.state_dict(), decoder_save_name)
+        torch.save(optimizer.state_dict(), optimizer_path)
+        # Save histories and epoch
+        state = {
+            'epochs': epochs,
+            'train_losses_chords': train_losses_chords,
+            'train_losses_melodies': train_losses_melodies,
+            'train_losses_kl': train_losses_kl,
+            'train_accs_chords': train_accs_chords,
+            'train_accs_melodies': train_accs_melodies,
+            'val_losses_chords': val_losses_chords,
+            'val_losses_melodies': val_losses_melodies,
+            'val_losses_kl': val_losses_kl,
+            'val_accs_chords': val_accs_chords,
+            'val_accs_melodies': val_accs_melodies,
+            'epoch': epoch + 1
+        }
+        with open(state_path, 'wb') as f:
+            pickle.dump(state, f)
         epoch += 1
 
         ep_train_loss_chord = sum(ep_train_losses_chords) / len(ep_train_losses_chords)
@@ -165,6 +212,17 @@ def train(dataset, model, name):
         ep_val_chord_acc = (sum(ep_val_tp_chords) / len(ep_val_tp_chords)) * 100
         ep_val_melody_acc = (sum(ep_val_tp_melodies) / len(ep_val_tp_melodies)) * 100
 
+        # Early stopping logic (monitoring validation chord loss)
+        if ep_val_loss_chord < best_val_loss:
+            best_val_loss = ep_val_loss_chord
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+            print(f"No improvement in validation loss for {epochs_no_improve} epoch(s).")
+            if epochs_no_improve >= patience:
+                print(f"Early stopping triggered after {patience} epochs without improvement.")
+                break
+
         print(
             f"Epoch chord loss: {ep_train_loss_chord:.3f}, melody loss: {ep_train_loss_melody:.3f}, KL: {ep_train_loss_kl:.3f}, "
             f"chord accuracy: {ep_train_chord_acc:.3f}, melody accuracy: {ep_train_melody_acc:.3f}")
@@ -172,17 +230,17 @@ def train(dataset, model, name):
             f"VALIDATION: epoch chord loss: {ep_val_loss_chord:.3f}, melody loss: {ep_val_loss_melody:.3f}, KL: {ep_val_loss_kl:.3f}, "
             f"chord accuracy: {ep_val_chord_acc:.3f}, melody accuracy: {ep_val_melody_acc:.3f}")
 
-        train_losses_chords.append(ep_train_loss_chord)
-        train_losses_melodies.append(ep_train_loss_melody)
-        train_losses_kl.append(ep_train_loss_kl)
-        train_accs_chords.append(ep_train_chord_acc)
-        train_accs_melodies.append(ep_train_melody_acc)
+        train_losses_chords.append(float(ep_train_loss_chord))
+        train_losses_melodies.append(float(ep_train_loss_melody))
+        train_losses_kl.append(float(ep_train_loss_kl))
+        train_accs_chords.append(float(ep_train_chord_acc))
+        train_accs_melodies.append(float(ep_train_melody_acc))
 
-        val_losses_chords.append(ep_val_loss_chord)
-        val_losses_melodies.append(ep_val_loss_melody)
-        val_losses_kl.append(ep_val_loss_kl)
-        val_accs_chords.append(ep_val_chord_acc)
-        val_accs_melodies.append(ep_val_melody_acc)
+        val_losses_chords.append(float(ep_val_loss_chord))
+        val_losses_melodies.append(float(ep_val_loss_melody))
+        val_losses_kl.append(float(ep_val_loss_kl))
+        val_accs_chords.append(float(ep_val_chord_acc))
+        val_accs_melodies.append(float(ep_val_melody_acc))
 
         fig, axs = plot.subplots(2, 2, figsize=(8, 4.5), dpi=200)
         # Chords loss

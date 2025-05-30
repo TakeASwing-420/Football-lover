@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from model.constants import *
+from constants import *
 
 
 class Lyrics2LofiModel(nn.Module):
