@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from constants import *
 
 
-def train(dataset, model, name, resume=False, patience=10):
+def train(dataset, model, name, resume=False, patience=15):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
 
@@ -212,15 +212,26 @@ def train(dataset, model, name, resume=False, patience=10):
         ep_val_chord_acc = (sum(ep_val_tp_chords) / len(ep_val_tp_chords)) * 100
         ep_val_melody_acc = (sum(ep_val_tp_melodies) / len(ep_val_tp_melodies)) * 100
 
-        # Early stopping logic (monitoring validation chord loss)
-        if ep_val_loss_chord < best_val_loss:
-            best_val_loss = ep_val_loss_chord
+        # Early stopping logic (monitoring all four validation metrics)
+        improved_loss_chord = ep_val_loss_chord < best_val_loss_chord if 'best_val_loss_chord' in locals() else True
+        improved_loss_melody = ep_val_loss_melody < best_val_loss_melody if 'best_val_loss_melody' in locals() else True
+        improved_acc_chord = ep_val_chord_acc > best_val_acc_chord if 'best_val_acc_chord' in locals() else True
+        improved_acc_melody = ep_val_melody_acc > best_val_acc_melody if 'best_val_acc_melody' in locals() else True
+        if improved_loss_chord or improved_loss_melody or improved_acc_chord or improved_acc_melody:
+            if improved_loss_chord:
+                best_val_loss_chord = ep_val_loss_chord
+            if improved_loss_melody:
+                best_val_loss_melody = ep_val_loss_melody
+            if improved_acc_chord:
+                best_val_acc_chord = ep_val_chord_acc
+            if improved_acc_melody:
+                best_val_acc_melody = ep_val_melody_acc
             epochs_no_improve = 0
         else:
             epochs_no_improve += 1
-            print(f"No improvement in validation loss for {epochs_no_improve} epoch(s).")
+            print(f"No improvement in any validation loss or accuracy for {epochs_no_improve} epoch(s).")
             if epochs_no_improve >= patience:
-                print(f"Early stopping triggered after {patience} epochs without improvement.")
+                print(f"Early stopping triggered after {patience} epochs without improvement in any validation loss or accuracy.")
                 break
 
         print(
@@ -280,4 +291,4 @@ def train(dataset, model, name, resume=False, patience=10):
 
         plot.tight_layout()
         plot.savefig(f"{name}.png")
-        plot.show()
+        plot.close()
