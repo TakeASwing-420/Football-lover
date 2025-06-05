@@ -3,3 +3,4 @@ client/node_modules/
 .cache
 log.txt
 __pycache__/
+myenv/
