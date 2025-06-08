@@ -39,6 +39,9 @@ class Producer {
   /** How positive the music should be, 0 (sad) to 1 (cheerful) */
   valence: number;
 
+  /** A continuous value between [0, 1] that denotes the swing ratio of the track */
+  swing: number;
+
   preset: Presets.ProducerPreset;
 
   notesInScale: string[];
@@ -101,11 +104,11 @@ class Producer {
     this.energy = params.energy;
     this.valence = params.valence;
     this.chords = params.chords;
-
+    this.swing = params.swing;
     this.preset = Presets.selectPreset(this.valence, this.energy);
 
     // swing with probability 1/10
-    const swing = randomFromInterval(1, 10, this.energy) <= 1;
+    const swing = randomFromInterval(1, 10, this.swing) <= 1;
 
     this.chordsTonal = this.chords.map((c, chordNo) => {
       const chordIndex = this.chords[chordNo] - 1;

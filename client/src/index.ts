@@ -111,6 +111,12 @@ export async function generateNewTrack() {
     params = await decode(numberArray);
   } catch (err) {
     generateButton.textContent = 'Error!';
+    console.error('Error decoding parameters:', err);
+    return;
+  }
+  if (params === null) {
+    generateButton.disabled = false;
+    loadingAnimation.style.display = 'none';
     return;
   }
   const producer = new Producer();

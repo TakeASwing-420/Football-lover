@@ -30,14 +30,18 @@ def home():
 
 
 @app.route('/decode', methods=['GET'])
-def decode_input():
+def decode_endpoint():
     input = request.args.get('input')
     number_list = json.loads(input)
-    json_output = decode(lofi2lofi_model, torch.tensor([number_list]).float())
-    response = jsonify(json_output)
+    result = decode(lofi2lofi_model)
+    if result is None:
+        return jsonify({'error': 'Input video is not lofifiable.'}), 400
+    elif result == "mood_tag not present":
+        return jsonify({'error': 'Mood_tag not found.'}), 400
+    
+    response = jsonify(result)
     response.headers.add('Access-Control-Allow-Origin', '*')
-
-    return response
+    return response, 201
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)

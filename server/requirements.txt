@@ -7,3 +7,5 @@ transformers
 jsonpickle
 bs4
 matplotlib
+opencv-python
+torchvision

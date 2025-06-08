@@ -28,6 +28,8 @@ export class OutputParams {
   /** How positive the music should be, 0 (sad) to 1 (cheerful) */
   valence: number;
 
+  swing: number;
+
   chords: number[];
 
   melodies: number[][];

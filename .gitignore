@@ -4,3 +4,5 @@ client/node_modules/
 log.txt
 __pycache__/
 myenv/
+myenv310/
+dist/

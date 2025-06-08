@@ -16,6 +16,8 @@ Lo-fi music has rather simple characteristics (short loops of chord progressions
 
 * **Energy**: a continuous value between [0, 1] that denotes a perceptual measure of intensity and activity
 
+* **Swing**: a continuous value between [0, 1] that denotes the swing ratio of the track
+
 A sample can thus be represented in JSON as such:
 
 ```json
@@ -34,7 +36,8 @@ A sample can thus be represented in JSON as such:
     [0, 6, 6, 6, 6, 6, 6, 6],
     [6, 5, 5, 5, 5, 5, 5, 2],
     [0, 5, 0, 0, 0, 0, 0, 0]
-  ]
+  ],
+  "swing": 0.987
 }
 ```
 
