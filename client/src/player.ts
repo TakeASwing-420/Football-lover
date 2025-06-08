@@ -4,6 +4,7 @@ import * as Samples from './samples';
 import { Track } from './track';
 import { compress } from './helper';
 import { refreshLatentSpace, generateNewTrack } from '.';
+const lamejs = require('lamejs');
 
 /**
  * A class that plays a Track by synthesizing events in Tone.js.
@@ -38,61 +39,102 @@ class Player {
     }
   }
 
-   /** Recorder */
-   private _recorder: Tone.Recorder;
+  /** Recorder */
+  private _recorder: Tone.Recorder;
 
-   async downloadRecording() {
-     if (this._recorder) {
-       const recording = await this._recorder.stop();
-       const type = recording?.type?.split(';')[0]?.split('/')[1] || 'webm';
-       if (recording?.size > 0) {
-         const url = URL.createObjectURL(recording);
-         const anchor = document.createElement('a');
-         anchor.download = `lofi-record.${type}`;
-         anchor.href = url;
-         anchor.click();
-       }
-       this._recorder = null;
-     }
-   }
+  async downloadRecording() {
+    if (this._recorder) {
+      const recording = await this._recorder.stop();
+      if (recording?.size > 0) {
+        const arrayBuffer = await recording.arrayBuffer();
+        const audioContext = new AudioContext();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const sampleRate = audioBuffer.sampleRate;
 
-   /** Whether the player is currently recording */
-   private _isRecording: boolean = false;
+        const mp3encoder = new lamejs.Mp3Encoder(2, sampleRate, 128);
 
-   get isRecording() {
-     return this._isRecording;
-   }
+        const leftChannel = audioBuffer.getChannelData(0);
+        const rightChannel = audioBuffer.getChannelData(1);
 
-   set isRecording(isRecording: boolean) {
-     if (this._isRecording !== isRecording) {
-       this._isRecording = isRecording;
-       if (!this._recorder) {
-         this._recorder = new Tone.Recorder();
-         this._recorder.start();
-       }
+        const floatTo16BitPCM = (input: Float32Array): Int16Array => {
+          const output = new Int16Array(input.length);
+          for (let i = 0; i < input.length; i++) {
+            const s = Math.max(-1, Math.min(1, input[i]));
+            output[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+          }
+          return output;
+        };
 
-       this.onRecordingStateChange();
-       if (this.gain) {
-         if (this._isRecording) {
-           this.gain.connect(this._recorder);
-         } else {
-           this.gain.disconnect(this._recorder);
-         }
-       }
+        const leftInt16 = floatTo16BitPCM(leftChannel);
+        const rightInt16 = floatTo16BitPCM(rightChannel);
 
-       if (!this._isRecording) {
-         this.downloadRecording();
-       }
-     }
-   }
+        const mp3Data: Uint8Array[] = [];
+        const samplesPerFrame = 1152;
 
-   pauseRecording() {
-     this.isRecording = false;
-   }
+        for (let i = 0; i < leftInt16.length; i += samplesPerFrame) {
+          const leftChunk = leftInt16.subarray(i, i + samplesPerFrame);
+          const rightChunk = rightInt16.subarray(i, i + samplesPerFrame);
+          const mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+          if (mp3buf.length > 0) {
+            mp3Data.push(new Uint8Array(mp3buf));
+          }
+        }
 
-   startRecording() {
-     this.isRecording = true;
-   }
+        const flushBuffer = mp3encoder.flush();
+        if (flushBuffer.length > 0) {
+          mp3Data.push(new Uint8Array(flushBuffer));
+        }
+
+        // ✅ Combine and create blob
+        const blob = new Blob(mp3Data as BlobPart[], { type: 'audio/mp3' });
+
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.download = 'lofi-record.mp3';
+        anchor.href = url;
+        anchor.click();
+      }
+      this._recorder = null;
+    }
+  }
+
+  /** Whether the player is currently recording */
+  private _isRecording: boolean = false;
+
+  get isRecording() {
+    return this._isRecording;
+  }
+
+  set isRecording(isRecording: boolean) {
+    if (this._isRecording !== isRecording) {
+      this._isRecording = isRecording;
+      if (!this._recorder) {
+        this._recorder = new Tone.Recorder();
+        this._recorder.start();
+      }
+
+      this.onRecordingStateChange();
+      if (this.gain) {
+        if (this._isRecording) {
+          this.gain.connect(this._recorder);
+        } else {
+          this.gain.disconnect(this._recorder);
+        }
+      }
+
+      if (!this._isRecording) {
+        this.downloadRecording();
+      }
+    }
+  }
+
+  pauseRecording() {
+    this.isRecording = false;
+  }
+
+  startRecording() {
+    this.isRecording = true;
+  }
 
   /** Whether the player is currently loading */
   private _isLoading: boolean = false;
@@ -185,7 +227,10 @@ class Player {
     this.load();
 
     // if this is the last track and continuous mode is enabled, generate the next track
-    if (this.repeat === RepeatMode.CONTINUOUS && this.currentPlayingIndex === this.playlist.length - 1) {
+    if (
+      this.repeat === RepeatMode.CONTINUOUS &&
+      this.currentPlayingIndex === this.playlist.length - 1
+    ) {
       refreshLatentSpace();
       generateNewTrack();
     }
