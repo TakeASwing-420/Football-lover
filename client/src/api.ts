@@ -1,12 +1,23 @@
 import { OutputParams } from './params';
 
-const server = 'http://127.0.0.1:5000';
+/**
+ * Uploads a video file to the Flask API and returns decoded output.
+ * @param videoFile The File object from a file input element.
+ */
+export const decode = async (videoFile: File): Promise<OutputParams> => {
+  const formData = new FormData();
+  formData.append('video', videoFile);
 
-export const decode = async (inputList: number[]): Promise<OutputParams | null> => {
-  const response = await fetch(`${server}/decode?input=${JSON.stringify(inputList)}`);
-  if (response.status === 400) {
-    return null;
+  const response = await fetch('http://localhost:5000/decode', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`API Error (${response.status}): ${JSON.stringify(errorData)}`);
   }
+
   const data = await response.json();
   return JSON.parse(data) as OutputParams;
 };

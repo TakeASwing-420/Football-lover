@@ -7,11 +7,10 @@ from model.lofi2lofi_model import Lofi2LofiModel
 
 checkers = ["chill and lofi", "bright and happy", "calm and ambient", "uplifting and hopeful", "nostalgic and sentimental", "playful and fun", "romantic and emotional", "peaceful and serene", "melancholic and reflective", "energetic and upbeat", "adventurous and exploratory"]
 
-def decode(model: Lofi2LofiModel) -> Optional[str]:
+def decode(model: Lofi2LofiModel, video_path: str) -> Optional[str]:
     mu = torch.randn(1, HIDDEN_SIZE)
-    file_path = os.path.join(os.path.dirname(__file__), "6800643-hd_1080_1920_30fps.mp4")
 
-    lofify = predict_music_features(file_path)
+    lofify = predict_music_features(video_path)
     is_lofifiable = any(lofify["mood_tag"]==x for x in checkers)
     
     if is_lofifiable:

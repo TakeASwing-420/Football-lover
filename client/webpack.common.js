@@ -8,9 +8,10 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
-        use: 'ts-loader',
-        exclude: /node_modules/
+        test: /\.css$/i,
+        // ✅ This must come *before* the .scss rule
+        use: [MiniCssExtractPlugin.loader, 'css-loader'],
+        type: 'javascript/auto' // ⬅️ Helps prevent parse issues with imported CSS
       },
       {
         test: /\.scss$/,
@@ -20,6 +21,11 @@ module.exports = {
             url: false
           }
         }, 'sass-loader']
+      },
+      {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/
       }
     ]
   },

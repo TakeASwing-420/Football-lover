@@ -101,7 +101,7 @@ $panel-border-radius: 6px;
   }
 }
 
-#slider-panel {
+#choose-panel {
   width: 190px;
 
   .header {
@@ -175,6 +175,10 @@ $panel-border-radius: 6px;
   }
 
   #generate-button {
+    width: 100%;
+  }
+  
+  #videoInput {
     width: 100%;
   }
 }
@@ -699,6 +703,7 @@ input:not([type]) {
 
 // input ranges
 input[type='range'] {
+  appearance: none;
   -webkit-appearance: none;
   background: $ui-background;
   border-radius: 5px;

@@ -7,6 +7,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="favicon-32.png" sizes="32x32">
   <link rel="icon" href="favicon-196.png" sizes="196x196">
+
+  <!-- ✅ Toastify CSS -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+  <!-- ✅ Toastify JS -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 </head>
 
 <body>
@@ -100,17 +106,9 @@
           </div>
         </div>
       </div>
-      <div id="slider-panel" class="panel">
-        <div class="header">
-          <div class="header-text">LATENT SPACE</div>
-          <button id="help" class="plain"></button>
-        </div>
-        <div id="slider-panel-content">
-          <div id="sliders">
-            <button id="refresh-button" class="plain" title="Sample new values from a normal distribution"></button>
-          </div>
+      <div id="choose-panel" class="panel">
+          <input type="file" id="videoInput" accept="video/*" style="margin-bottom: 8px;" />
           <button id="generate-button" class="flat"><div id="loading-animation" style="display: none"><div></div><div></div><div></div></div>Generate</button>
-        </div>
       </div>
     </div>
   </div>

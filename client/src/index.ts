@@ -4,6 +4,8 @@ import Producer from './producer';
 import { DEFAULT_OUTPUTPARAMS, HIDDEN_SIZE, OutputParams } from './params';
 import { decompress, randn } from './helper';
 import { decode } from './api';
+import Toastify from 'toastify-js';
+import "toastify-js/src/toastify.css";
 
 const player = new Player();
 
@@ -63,40 +65,6 @@ if (playlistToLoad.length > 0) {
   updateLocalStorage();
 }
 
-// Sliders
-const slidersEl = document.getElementById('sliders');
-const sliders: HTMLInputElement[] = [];
-for (let i = 0; i < HIDDEN_SIZE; i += 1) {
-  const slider = document.createElement('input') as HTMLInputElement;
-  slider.type = 'range';
-  slider.min = '-4';
-  slider.max = '4';
-  slider.step = '0.01';
-  slider.valueAsNumber = randn();
-  slidersEl.appendChild(slider);
-  sliders.push(slider);
-}
-
-// Help button
-const helpButton = document.getElementById('help');
-const introText = document.getElementById('intro-text');
-helpButton.addEventListener('click', () => {
-  if (introText.style.maxHeight) {
-    introText.style.maxHeight = null;
-  } else {
-    introText.style.maxHeight = '200px';
-  }
-});
-
-// Refresh Button
-const refreshButton = document.getElementById('refresh-button');
-export function refreshLatentSpace() {
-  sliders.forEach((s) => {
-    s.valueAsNumber = randn();
-  });
-}
-refreshButton.addEventListener('click', refreshLatentSpace);
-
 // Generate button
 const generateButton = document.getElementById('generate-button') as HTMLButtonElement;
 const loadingAnimation = document.getElementById('loading-animation');
@@ -104,16 +72,32 @@ export async function generateNewTrack() {
   generateButton.disabled = true;
   loadingAnimation.style.display = null;
 
-  const numberArray = sliders.map((n) => n.valueAsNumber);
+  const input = document.getElementById('videoInput') as HTMLInputElement;
+  const file = input?.files?.[0];
 
-  let params;
-  try {
-    params = await decode(numberArray);
-  } catch (err) {
-    generateButton.textContent = 'Error!';
-    console.error('Error decoding parameters:', err);
+  if (!file) {
+    alert('Please select a video file');
     return;
   }
+  let params;
+  try {
+    params = await decode(file);
+  } catch (err) {
+  generateButton.textContent = 'Error!';
+  console.error('Error decoding parameters:', err);
+
+  Toastify({
+    text: "⚠️ Error decoding parameters!" + err.toString(),
+    duration: 4000,
+    gravity: "top", // top or bottom
+    position: "right", // left, center or right
+    backgroundColor: "#ff4d4d",
+    stopOnFocus: true
+  }).showToast();
+
+  return;
+}
+
   if (params === null) {
     generateButton.disabled = false;
     loadingAnimation.style.display = 'none';

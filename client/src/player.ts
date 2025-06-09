@@ -3,7 +3,7 @@ import { getInstrumentFilters, getInstrument, Instrument } from './instruments';
 import * as Samples from './samples';
 import { Track } from './track';
 import { compress } from './helper';
-import { refreshLatentSpace, generateNewTrack } from '.';
+import { generateNewTrack } from '.';
 const lamejs = require('lamejs');
 
 /**
@@ -231,7 +231,6 @@ class Player {
       this.repeat === RepeatMode.CONTINUOUS &&
       this.currentPlayingIndex === this.playlist.length - 1
     ) {
-      refreshLatentSpace();
       generateNewTrack();
     }
   }
